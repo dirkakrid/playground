@@ -27,3 +27,4 @@ services:
     build: gunicorn
     volumes:
       - ./gunicorn/app.py:/app.py
+    command: gunicorn --bind :8000 --threads 30 app:app
