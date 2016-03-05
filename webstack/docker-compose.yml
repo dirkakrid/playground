@@ -1,0 +1,29 @@
+version: '2'
+services:
+  lb:
+    image: haproxy:1.6
+    ports:
+      - "8080:80"
+      - "1936:1936"
+    volumes:
+      - ./haproxy/haproxy-lb.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    links:
+      - nginx
+  nginx:
+    image: nginx:1.9
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    links:
+      - api
+  api:
+    image: haproxy:1.6
+    ports:
+      - "1937:1936"
+    volumes:
+      - ./haproxy/haproxy-api.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    links:
+      - app
+  app:
+    build: gunicorn
+    volumes:
+      - ./gunicorn/app.py:/app.py
