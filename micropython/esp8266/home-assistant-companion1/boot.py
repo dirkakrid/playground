@@ -1,5 +1,4 @@
 import gc
-import webrepl
 from machine import freq
 
 
@@ -21,5 +20,4 @@ def do_connect():
     print('network config:', sta_if.ifconfig())
 
 do_connect()
-webrepl.start()
 gc.collect()

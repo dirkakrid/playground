@@ -1,47 +1,29 @@
-from machine import Pin
-from rfsocket import Esp8266Timings, RFSocket
+from umqtt.robust import MQTTClient
+from machine import Pin, unique_id
+from remote_group import RemoteGroup
+import ubinascii as binascii
 
-REMOTES = {}
 rf_pin = Pin(0, Pin.OUT)
+rg = RemoteGroup(rf_pin)
+
+client_id = b"wemos_" + binascii.hexlify(unique_id())
+mqtt_host = "kosteczka.local"
+mqtt = MQTTClient(client_id, mqtt_host)
 
 
-def remote(remote_id_str):
-    remote_id = int(remote_id_str)
-    if remote_id not in REMOTES:
-        REMOTES[remote_id] = RFSocket(rf_pin, RFSocket.ANSLUT, remote_id=remote_id, timings=Esp8266Timings)
-    return REMOTES[remote_id]
+def handle_message(topic, msg):
+    print(topic, msg)
+    parts = msg.decode("utf-8").split(" ")
+    try:
+        getattr(rg, parts[0])(*parts[1:])
+    except AttributeError:
+        pass
+    mqtt.publish(topic[:-3] + "/".join(parts[1:]).encode("utf-8"), msg, retain=True)
 
+mqtt.set_callback(handle_message)
+mqtt.connect()
+mqtt.subscribe(b"home/rfsocket/set")
 
-def switch_on(remote_id_str, switch_num_str):
-    switch_num = int(switch_num_str)
-    r = remote(remote_id_str)
-    r.on(switch_num)
-    return r.status()
-
-
-def switch_off(remote_id_str, switch_num_str):
-    switch_num = int(switch_num_str)
-    r = remote(remote_id_str)
-    r.off(switch_num)
-    return r.status()
-
-
-def group_on(remote_id_str):
-    r = remote(remote_id_str)
-    r.group_on()
-    return r.status()
-
-
-def group_off(remote_id_str):
-    r = remote(remote_id_str)
-    r.group_off()
-    return r.status()
-
-
-def remote_status(remote_id_str):
-    r = remote(remote_id_str)
-    return r.status()
-
-
-def remotes():
-    return REMOTES.keys()
+print("Waiting on MQTT")
+while True:
+    mqtt.wait_msg()
