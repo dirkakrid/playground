@@ -12,7 +12,7 @@ class Button:
 
     DEBOUNCE_TIME = const(10)
     COOLOFF_TIME = const(30)
-    MULTICLICK_DELTA = const(300)
+    MULTICLICK_DELTA = const(450)
 
     def __init__(self, pin_number, max_clicks=3):
         self.timer = Timer(-1)
