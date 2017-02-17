@@ -37,9 +37,9 @@ class Button:
     def ready(self):
         if self.state != self.IDLE:
             return False  # middle of release procedures
-        if self._clicks == 0:
+        if self._click == 0:
             return False  # no clicks present
-        if self._clicks == self._max_clicks:
+        if self._click == self._max_clicks:
             return True  # allow to read max_clicks events w/o multiclick delay
         if ticks_diff(ticks_ms(), self.last_click) < self.MULTICLICK_DELTA:
             return False  # still waiting for multiclick
