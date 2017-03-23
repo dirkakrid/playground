@@ -4,7 +4,7 @@ job "app" {
 
 
   group "app" {
-
+    count = 3
     task "app" {
       driver = "docker"
       config {
