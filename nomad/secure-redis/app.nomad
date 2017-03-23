@@ -1,41 +1,28 @@
-job "redis" {
+job "app" {
   datacenters = ["dc1"]
   type = "service"
 
-  group "redis-server" {
-    ephemeral_disk {
-      sticky = true
-      migrate = true
-      size = 300
-    }
 
+  group "app" {
 
-    task "redis" {
+    task "app" {
       driver = "docker"
       config {
         image = "redis:3.2"
+        command = "redis-cli"
         args = [
-          "--unixsocket ${NOMAD_ALLOC_DIR}/redis.sock",
-          "--unixsocketperm 777",
-          "--port 0"
+          "-s", "${NOMAD_ALLOC_DIR}/redis.sock", "INCR", "testkey"
         ]
       }
-
       resources {
-        cpu    = 20 # 500 MHz
-        memory = 256 # 256MB
-        network {
-          mbits = 1
-        }
+        cpu    = 20
+        memory = 32 # 256MB
       }
     }
 
-    task "stunnel" {
+    task "redis-stunnel-client" {
       driver = "docker"
       config = {
-        port_map = {
-          stunnel = 46379
-        }
         image = "https403/stunnel:latest"  # the only image that does not define an entrypoint
         command = "${NOMAD_TASK_DIR}/stunnel.conf" 
       }
@@ -45,20 +32,16 @@ job "redis" {
         perms = "600"
       }
 
-      service {
-        name = "stunnel"
-        port = "stunnel"
-      }
-
       template {
-        destination = "${NOMAD_TASK_DIR}/stunnel.conf"
+        destination = "/local/stunnel.conf"
         data = <<EOH
 foreground = yes
 pid = {{ env "NOMAD_TASK_DIR" }}/stunnel.pid 
 
-[PSK server]
-accept = 46379
-connect = {{ env "NOMAD_ALLOC_DIR" }}/redis.sock
+[PSK client]
+client = yes
+accept = {{ env "NOMAD_ALLOC_DIR" }}/redis.sock
+connect = {{ with service "stunnel" }}{{ with index . 0 }}{{ .Address }}:{{ .Port }}{{ end }}{{ end }}
 ciphers = PSK
 PSKsecrets = {{ env "NOMAD_SECRETS_DIR" }}/stunnel-psk.txt
 EOH
